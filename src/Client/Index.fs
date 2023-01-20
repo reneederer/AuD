@@ -14,18 +14,6 @@ type HornerSchema =
       Digits : string
     }
 
-type SortAlgorithmType =
-    | BubbleSort
-    | InsertionSort
-    | SelectionSort
-    | MergeSort
-    | HeapSort
-    | QuickSort
-
-type SortAlgorithm =
-    { Numbers : string
-    }
-
 type HashTable =
     { BoxCount : int
       HashF : string -> int
