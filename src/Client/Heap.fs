@@ -1,3 +1,4 @@
+//FIXME Heap sortiert desc falsch!
 module Heap
 
 open Elmish

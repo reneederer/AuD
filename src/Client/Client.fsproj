@@ -7,7 +7,13 @@
     <ItemGroup>
         <None Include="index.html" />
         <None Include="paket.references" />
+        <Compile Include="Graph.fs" />
+        <Compile Include="Helper.fs" />
+        <Compile Include="Tree.fs" />
+        <Compile Include="Dijkstra.fs" />
         <Compile Include="Types.fs" />
+        <Compile Include="HashTable.fs" />
+        <Compile Include="SortAlgorithms.fs" />
         <Compile Include="Heap.fs" />
         <Compile Include="Index.fs" />
         <Compile Include="App.fs" />

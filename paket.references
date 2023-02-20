@@ -2,3 +2,5 @@ Fake.Core.Target
 Fake.IO.FileSystem
 Farmer
 Fable.React.DrawingCanvas
+Feliz.Plotly
+Fable.Elmish

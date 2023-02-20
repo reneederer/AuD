@@ -3,10 +3,12 @@ framework: net6.0
 storage: none
 
 nuget Fable.React.DrawingCanvas
-nuget Fsharp.Core ~> 6
+nuget Feliz.Plotly
+nuget Fsharp.Core
 nuget Fable.Remoting.Giraffe
 nuget Saturn
 nuget Expecto
+nuget Microsoft.AspNetCore.Authentication.JwtBearer ~> 6.0.13
 
 nuget Fable.Core
 nuget Fable.Elmish
