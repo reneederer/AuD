@@ -15,13 +15,15 @@ type Model =
       ModMods : string
       ModNumbers : string
 
-      Floyd : string
+      FloydVertices : string
+      FloydInitialWeights : string list
     }
 
 type Msg =
     | HornerSchemaChanged of (string * string * string)
     | ModChanged of (string * string)
-    | FloydChanged of string
+    | FloydVerticesChanged of string
+    | FloydInitialWeightsChanged of (int * string)
 
 let todosApi =
     Remoting.createApi ()
@@ -37,7 +39,8 @@ let init () : Model * Cmd<Msg> =
               ModMods = "8"
               ModNumbers = "31,42,36"
 
-              Floyd = "a,b,1000 a,c,1 a,d,4 b,a,3 b,c,1000 b,d,8 c,a,1000 c,b,1000 c,d,2 d,a,1000 d,b,5 d,c,1000"
+              FloydVertices = "a,b,c,d"
+              FloydInitialWeights = ["1000"; "1"; "4"; "3"; "1000"; "8"; "1000"; "1000"; "2"; "1000"; "5"; "1000"]
             }
     model, Cmd.none
         ////(Heap.init ()) |> (fun (model, cmd) -> Heap model, cmd |> Cmd.map HeapMsg)
@@ -58,10 +61,29 @@ let update (msg: Msg) (model: Model) : (Model * Cmd<Msg>) =
                 ModMods = mods
                 ModNumbers = numbers
          }, Cmd.none
-    | model, FloydChanged s ->
+    | model, FloydVerticesChanged s ->
         { model
             with
-                Floyd = s
+                FloydVertices = s
+                FloydInitialWeights =
+                    []
+        }, Cmd.none
+    | model, FloydInitialWeightsChanged (index, weight) ->
+        console.log $"xx:{index}, {weight}"
+        let xs =
+            List.init
+                (Math.Max(index + 1, model.FloydInitialWeights.Length))
+                (fun i ->
+                    if i = index then
+                        weight
+                    elif i < model.FloydInitialWeights.Length then
+                        model.FloydInitialWeights.[i]
+                    else
+                        "999999")
+        console.log $"xs:{xs}"
+        { model
+            with
+                FloydInitialWeights = xs
         }, Cmd.none
 
 let toBase (s : string) (d : string) (ns : string) =
@@ -210,20 +232,29 @@ let view (model: Model) (dispatch: Msg -> unit) =
         br []
         h2 [] [ str "Floyd" ]
 
+        let getVerticesCombs (vertices : string list) =
+            [ for i in 0..vertices.Length - 1 do
+                for j in 0..vertices.Length - 1 do
+                    if i <> j then
+                        vertices.[i], vertices.[j]
+            ]
+
+        let vertices =
+            model.FloydVertices.Split "," |> List.ofSeq |> List.distinct
+
+        let verticesCombs = getVerticesCombs vertices
+
         let actualEdges =
             try
-                [ for edgeStr in model.Floyd.Split " " do
-                    let [| a; b; weightStr |] = edgeStr.Split ","
-                    ((a, b), Double.Parse weightStr)
+                [ for i in 0 .. model.FloydInitialWeights.Length - 1 do
+                    (verticesCombs.[i], Double.Parse model.FloydInitialWeights.[i])
                 ]
                 |> Map.ofList
             with
             | _ ->
-                Map.empty
+              console.log "err1";   Map.empty
 
-        let vertices =
-            actualEdges |> Map.toList |> List.collect (fun ((a, b), _) -> [a; b])
-            |> List.distinct
+        printfn $"aaa: {actualEdges}"
 
 
         let mutable floydEdges : Map<string * string, Map<string, double>> =
@@ -240,6 +271,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                         |> Map.ofList
             ]
             |> Map.ofList
+        printfn $"floydedges: {floydEdges}"
 
         let getMin (edge : string * string) =
             try
@@ -248,10 +280,11 @@ let view (model: Model) (dispatch: Msg -> unit) =
                     if v < state then v else state
                 ) 999999.
             with
-            | _ -> 999999.
+            | _ ->
+                console.log $"err2: {edge}";
+                999999.
             
 
-        let floydEdgesList = floydEdges |> Map.toList
         for k in 0..vertices.Length-1 do
             for i in 0..vertices.Length-1 do
                 for j in 0..vertices.Length-1 do
@@ -260,19 +293,18 @@ let view (model: Model) (dispatch: Msg -> unit) =
                         let current = getMin (vertices.[i], vertices.[k]) + getMin(vertices.[k], vertices.[j])
                         floydEdges <-
                             floydEdges.Add((vertices.[i], vertices.[j]),
-                            floydEdges.[vertices.[i], vertices.[j]].Add(vertices.[k], if min > current then current else min))
+                            floydEdges.[vertices.[i], vertices.[j]].Add(vertices.[k], if current < min then current else min))
         printfn $"{floydEdges}"
         printfn $"{vertices}"
-
-        let n = 10
 
         Bulma.label
             [ str "Floyd"]
         Bulma.input.text
             [ prop.onChange (fun (evt : Browser.Types.Event) ->
-                dispatch <| FloydChanged evt.target?value)
-              prop.value (string model.Floyd)
+                dispatch <| FloydVerticesChanged evt.target?value)
+              prop.value (string model.FloydVertices)
             ]
+        let mutable n = 0
         Bulma.table
             [ for i in 0..vertices.Length - 1 do
                   for j in 0..vertices.Length - 1 do
@@ -281,11 +313,22 @@ let view (model: Model) (dispatch: Msg -> unit) =
                             []
                             [ td
                                 []
-                                [ str (try $"{vertices.[i]}, {vertices.[j]}" with | _ -> "") ]
+                                [ str (try $"{vertices.[i]}, {vertices.[j]}" with | _ -> console.log "err3"; "") ]
+                              let m = n
+                              td
+                                []
+                                [ Bulma.input.text
+                                    [ prop.onChange (fun (evt : Browser.Types.Event) ->
+                                        dispatch <| FloydInitialWeightsChanged (m, evt.target?value))
+                                      prop.value (try (string model.FloydInitialWeights.[m]) with | _ -> console.log "err4"; "")
+                                    ]
+                                ]
+                              console.log $"n: {n}"
+                              n <- n + 1
                               for k in 0..vertices.Length - 1 do
                                 td
                                     []
-                                    [ str (try (string floydEdges.[vertices.[i], vertices.[j]].[vertices.[k]]) with | _ -> "") ]
+                                    [ str (try (string floydEdges.[vertices.[i], vertices.[j]].[vertices.[k]]) with | _ ->  console.log "err5";"") ]
 
                             ]
             ]
